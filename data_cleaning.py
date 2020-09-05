@@ -33,12 +33,14 @@ def standard_salary(salary):
 
 # 将薪资拆分为最高薪资与最低薪资
 def split_salary(salary):
-
     low_salary = []  # 最低薪资
     high_salary = []  # 最高薪资
 
+    ans = 1
     # 把薪资成千/月的形式
     for x in salary:
+        print("====split_salary====%d" % ans)
+        ans = ans + 1
         if str(x) == "nan":  # 如果待遇这栏不为空，计算最低最高待遇
             low_salary.append("")
             high_salary.append("")
@@ -56,7 +58,10 @@ def split_salary(salary):
  # 将“地区-区域”转化为“地区”
 def workarea_format(workarea):
     new_workarea = []
+    ans = 1
     for x in workarea:
+        print("====workarea_format====%d" % ans)
+        ans = ans + 1
         area = (x.split('-',1))[0]
         new_workarea.append(area)
 
@@ -68,7 +73,11 @@ def column_adjustment(background, education, recruiters_number):
     # 列出所有学历信息
     all_education = ['初中及以下', '高中', '中技', '中专', '大专', '本科', '硕士', '博士', '无学历要求']
 
+    ans = 1
     for x in range(len(background)):
+        print("====column_adjustment====%d" % ans)
+        ans = ans + 1
+
         # 获取原信息
         bg = background[x]
         ed = education[x]
@@ -97,6 +106,37 @@ def column_adjustment(background, education, recruiters_number):
 
     return background, education, recruiters_number
 
+# 删除一些缺失数据的行，例如地点缺失，薪资缺失，以及地点为“异地招聘”的行，并将经验缺失的数据用无需经验填补，学历缺失的用初中及以下填补
+def delete_fill_data(df):
+    low_salary = df['low_salary'].tolist()  # 单独提取出最低薪资的一列
+    high_salary = df['high_salary'].tolist()  # 单独提取出最高薪资的一列
+    workarea = df['workarea'].tolist()  # 单独提取出地址的一列
+    background = df['background'].tolist()  # 单独提取出工作经验的一列
+    education = df['education'].tolist()  # 单独提取出学历要求的一列
+    company_type = df['company_type'].tolist()  # 单独提取出公司类型的一列
+
+    index = []  #用于记录需要删除的行
+    ans = 1
+    for x in range(len(workarea)):
+        print("====delete_fill_data====%d" % ans)
+        ans = ans + 1
+
+        if str(workarea[x]) == "nan" or workarea[x] == "" or workarea[x] == "异地招聘" or str(low_salary[x]) == "nan" or low_salary[x] == "" or str(high_salary[x]) == "nan" or high_salary[x] == "" or str(company_type[x]) == "nan" or company_type[x] == "":
+            index.append(x)
+        else:
+            if str(background[x]) == "nan" or background[x] == "":     # 填补经验缺失值
+                background[x] = "无需经验"
+            if str(education[x]) == "nan" or education[x] == "":  # 填补学历要求缺失值
+                education[x] = "初中及以下"
+
+    # 替换信息
+    df['background'] = background
+    df['education'] = education
+    print(index)    #输出要删除的行
+    # 删除行
+    new_df = df.drop(index)
+
+    return new_df
 
 if __name__ == '__main__':
 
@@ -140,7 +180,7 @@ if __name__ == '__main__':
         df['high_salary'] = new_salary[1]  # 增加新的列high_salary
         # print(df['low_salary'])
         # print(df['high_salary'])
-        df.drop('salary', axis=1, inplace=True)   # 去除原来的薪资信息，删除列，则要增加参数axis=1，在原DataFrame上进行操作，需要加上inplace=True，等价于在操作完再赋值给本身
+        df.drop('salary', axis=1, inplace=True)  # 去除原来的薪资信息，删除列，则要增加参数axis=1，在原DataFrame上进行操作，需要加上inplace=True，等价于在操作完再赋值给本身
 
         # 将“地区-区域”转化为“地区”
         new_workarea = workarea_format(workarea)
@@ -158,15 +198,24 @@ if __name__ == '__main__':
         df['background'] = new_background   # 更新信息
         df['education'] = new_education
         df['recruiters_number'] = new_recruiters_number
+
         # print("=========")
-        # print(df['background'].isna())
+        # print((df['education'].isna()==True).tolist())
 
-
-        index = df[df['background'] == ""].index  # 获取索引
-        index1 = df[df['education'] == ""].index  # 获取索引
-        index2 = df[df['recruiters_number'] == ""].index  # 获取索引
+        # index = df[df['background'] == ""].index  # 获取索引
+        # index.append(df['background'].isna().index)
+        # index1 = df[df['education'] == ""].index  # 获取索引
+        # index1.append(df['education'].isna().index)
+        # index2 = df[df['recruiters_number'] == ""].index  # 获取索引
         # print(index)
         # print(index1)
         # print(index2)
+
+        # 删除一些缺失数据的行，例如地点缺失，薪资缺失，以及地点为“异地招聘”的行，并将经验缺失的数据用无需经验填补，学历缺失的用初中及以下填补
+        new_df = delete_fill_data(df)
+
+        # 查看缺失值数据个数
+        print(new_df.isnull().sum())
+
         # 将清洗后的数据保存到新的csv文件
-        # df.to_csv('前程无忧网招聘信息1.csv', index=None, header=True, encoding='utf_8_sig')
+        new_df.to_csv('前程无忧网招聘信息_清洗.csv', index=None, header=True, encoding='utf_8_sig')
